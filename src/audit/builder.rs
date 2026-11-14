@@ -45,7 +45,7 @@ impl<A, R, O> RecordBuilder<A, R, O> {
         kind: OperationKind,
         id: String,
         time: DateTime<Utc>,
-        status: Option<OperationStatus>,
+        status: OperationStatus,
     ) -> RecordBuilder<A, R, Operation> {
         RecordBuilder {
             actor: self.actor,
@@ -149,7 +149,7 @@ mod tests {
                 OperationKind::Update,
                 "CarrierTracking".to_string(),
                 operation_time,
-                Some(OperationStatus::Succeeded),
+                OperationStatus::Succeeded,
             )
             .with_operation_metadata("trigger".to_string(), "schedule".to_string())
             .build();

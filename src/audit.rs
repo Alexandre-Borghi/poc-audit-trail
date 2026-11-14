@@ -183,7 +183,7 @@ pub struct Operation {
     id: String,
     time: DateTime<Utc>,
     metadata: Metadata,
-    status: Option<OperationStatus>,
+    status: OperationStatus,
 }
 
 #[derive(Debug, Clone)]
@@ -191,6 +191,7 @@ pub enum OperationStatus {
     Succeeded,
     Failed,
     Denied,
+    Unknown,
 }
 
 #[derive(Debug, Clone)]
@@ -218,7 +219,7 @@ impl Operation {
         kind: OperationKind,
         id: String,
         time: DateTime<Utc>,
-        status: Option<OperationStatus>,
+        status: OperationStatus,
     ) -> Self {
         Self {
             kind,
@@ -242,5 +243,3 @@ impl Metadata {
         Self(BTreeMap::new())
     }
 }
-
-// TODO: builder pattern constructor for Record

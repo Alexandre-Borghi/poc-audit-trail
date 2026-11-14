@@ -12,9 +12,7 @@ mod store;
 
 pub use builder::RecordBuilder;
 pub use service::AuditService;
-pub use store::AuditStoreInMemory;
-
-use store::AuditStore;
+pub use store::{AuditStore, AuditStoreInMemory};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct RecordId(Uuid);

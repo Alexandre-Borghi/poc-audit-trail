@@ -179,7 +179,7 @@ impl Snapshot {
 
 #[derive(Debug, Clone)]
 pub struct Operation {
-    kind: String,
+    kind: OperationKind,
     id: String,
     time: DateTime<Utc>,
     metadata: Metadata,
@@ -193,9 +193,29 @@ pub enum OperationStatus {
     Denied,
 }
 
+#[derive(Debug, Clone)]
+pub enum OperationKind {
+    Create,
+    Read,
+    Update,
+    Delete,
+}
+
+impl Display for OperationKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            OperationKind::Create => "create",
+            OperationKind::Read => "read",
+            OperationKind::Update => "update",
+            OperationKind::Delete => "delete",
+        };
+        write!(f, "{s}")
+    }
+}
+
 impl Operation {
     pub fn new(
-        kind: String,
+        kind: OperationKind,
         id: String,
         time: DateTime<Utc>,
         status: Option<OperationStatus>,

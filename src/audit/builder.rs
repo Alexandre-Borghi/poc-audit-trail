@@ -42,7 +42,7 @@ impl<A, R, O> RecordBuilder<A, R, O> {
 
     pub fn with_operation(
         self,
-        kind: String,
+        kind: OperationKind,
         id: String,
         time: DateTime<Utc>,
         status: Option<OperationStatus>,
@@ -146,7 +146,7 @@ mod tests {
             .try_with_create("delivery_date".to_string(), None, "2000-01-01T00:00:00Z")?
             .try_with_delete("shipping_status".to_string(), None, "ongoing")?
             .with_operation(
-                "update".to_string(),
+                OperationKind::Update,
                 "CarrierTracking".to_string(),
                 operation_time,
                 Some(OperationStatus::Succeeded),

@@ -2,7 +2,7 @@ use chrono::Utc;
 use tracing::{debug, info, instrument, trace};
 
 use crate::{
-    audit::{self, AuditService, RecordBuilder},
+    audit::{self, AuditService, OperationKind, RecordBuilder},
     project::{Project, ProjectId, ProjectStore},
 };
 
@@ -33,7 +33,7 @@ impl ProjectService {
                 .try_with_create("self".to_string(), None, &project)
                 .unwrap()
                 .with_operation(
-                    "create".to_string(),
+                    OperationKind::Create,
                     "ProjectService::create".to_string(),
                     Utc::now(),
                     Some(audit::OperationStatus::Succeeded),
@@ -68,7 +68,7 @@ impl ProjectService {
                 .try_with_update("title".to_string(), None, &old_title, &new_title)
                 .unwrap()
                 .with_operation(
-                    "update".to_string(),
+                    OperationKind::Update,
                     "ProjectService::change_title".to_string(),
                     Utc::now(),
                     Some(audit::OperationStatus::Succeeded),

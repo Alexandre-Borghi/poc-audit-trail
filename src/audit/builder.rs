@@ -1,6 +1,6 @@
 use super::*;
 
-struct Missing;
+pub struct Missing;
 
 #[must_use]
 pub struct RecordBuilder<A = Missing, R = Missing, O = Missing> {
@@ -49,8 +49,8 @@ impl<A, R, O> RecordBuilder<A, R, O> {
         }
     }
 
-    pub fn with_label(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.labels.0.insert(key.into(), value.into());
+    pub fn with_label(mut self, key: String, value: String) -> Self {
+        self.labels.0.insert(key, value);
         self
     }
 }
@@ -70,33 +70,36 @@ mod tests {
     #[test]
     fn it_works() -> Result<(), Box<dyn Error>> {
         let operation_time = DateTime::from_timestamp_secs(946_684_800).unwrap();
-        let new_record = RecordBuilder::new()
-            .with_actor(Actor::new("user", "123").with_metadata("privilege", "admin"))
+        let _ = RecordBuilder::new()
+            .with_actor(
+                Actor::new("user".to_string(), "123".to_string())
+                    .with_metadata("privilege".to_string(), "admin".to_string()),
+            )
             .with_resource(
-                Resource::new("order", "456")
-                    .with_metadata("ref", "ABC-DEF")
-                    .with_metadata("project_ref", "ABC")
+                Resource::new("order".to_string(), "456".to_string())
+                    .with_metadata("ref".to_string(), "ABC-DEF".to_string())
+                    .with_metadata("project_ref".to_string(), "ABC".to_string())
                     .try_with_change(
-                        "status",
-                        Some("automatic status change from carrier API"),
+                        "status".to_string(),
+                        Some("automatic status change from carrier API".to_string()),
                         Some("shipped"),
                         Some("delivered"),
                     )?
                     .try_with_change(
-                        "delivery_date",
-                        None::<String>,
-                        None::<()>,
+                        "delivery_date".to_string(),
+                        None,
+                        None::<&()>,
                         Some("2000-01-01T00:00:00Z"),
                     )?,
             )
             .with_operation(
                 Operation::new(
-                    "update",
-                    "CarrierTracking",
+                    "update".to_string(),
+                    "CarrierTracking".to_string(),
                     operation_time,
                     Some(OperationStatus::Succeeded),
                 )
-                .with_metadata("trigger", "schedule"),
+                .with_metadata("trigger".to_string(), "schedule".to_string()),
             )
             .build();
         Ok(())

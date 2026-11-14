@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, fmt::Display};
 
 use chrono::{DateTime, Utc};
 use serde::Serialize;
@@ -7,11 +7,27 @@ use thiserror::Error;
 use uuid::Uuid;
 
 mod builder;
+mod service;
+mod store;
 
 pub use builder::RecordBuilder;
+pub use service::AuditService;
+pub use store::AuditStoreInMemory;
 
-struct Record {
-    id: Uuid,
+use store::AuditStore;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct RecordId(Uuid);
+
+impl Display for RecordId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Record {
+    id: RecordId,
     creation_time: DateTime<Utc>,
     labels: Labels,
     actor: Actor,
@@ -22,7 +38,7 @@ struct Record {
 impl Record {
     fn new(actor: Actor, resource: Resource, operation: Operation, labels: Labels) -> Self {
         Self {
-            id: Uuid::new_v4(),
+            id: RecordId(Uuid::new_v4()),
             creation_time: Utc::now(),
             labels,
             actor,
@@ -32,6 +48,43 @@ impl Record {
     }
 }
 
+impl Display for Record {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{} | {}", self.id, self.creation_time)?;
+        writeln!(f, "  - Actor: {} (id: {})", self.actor.kind, self.actor.id)?;
+        writeln!(
+            f,
+            "  - Operation: {} (kind: {}) | {} | {:?}",
+            self.operation.id, self.operation.kind, self.operation.time, self.operation.status
+        )?;
+        writeln!(
+            f,
+            "  - Resource: {} (id: {})",
+            self.resource.kind, self.resource.id
+        )?;
+        for (field, change) in self.resource.changes.iter() {
+            write!(f, "    - {field}: ")?;
+            if let Some(ref old_value) = change.old_value {
+                write!(f, "{}", old_value.0)?;
+            } else {
+                write!(f, "nothing")?;
+            }
+            write!(f, " => ")?;
+            if let Some(ref new_value) = change.new_value {
+                write!(f, "{}", new_value.0)?;
+            } else {
+                write!(f, "nothing")?;
+            }
+            if let Some(ref description) = change.description {
+                write!(f, "{description}")?;
+            }
+            writeln!(f)?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
 struct Labels(BTreeMap<String, String>);
 
 impl Labels {
@@ -40,28 +93,30 @@ impl Labels {
     }
 }
 
-struct Actor {
+#[derive(Debug, Clone)]
+pub struct Actor {
     kind: String,
     id: String,
     metadata: Metadata,
 }
 
 impl Actor {
-    fn new(kind: impl Into<String>, id: impl Into<String>) -> Self {
+    pub fn new(kind: String, id: String) -> Self {
         Self {
-            kind: kind.into(),
-            id: id.into(),
+            kind,
+            id,
             metadata: Metadata::new(),
         }
     }
 
-    pub fn with_metadata(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.metadata.0.insert(key.into(), value.into());
+    pub fn with_metadata(mut self, key: String, value: String) -> Self {
+        self.metadata.0.insert(key, value);
         self
     }
 }
 
-struct Resource {
+#[derive(Debug, Clone)]
+pub struct Resource {
     kind: String,
     id: String,
     metadata: Metadata,
@@ -69,31 +124,31 @@ struct Resource {
 }
 
 impl Resource {
-    fn new(kind: impl Into<String>, id: impl Into<String>) -> Self {
+    pub fn new(kind: String, id: String) -> Self {
         Self {
-            kind: kind.into(),
-            id: id.into(),
+            kind,
+            id,
             metadata: Metadata::new(),
             changes: BTreeMap::new(),
         }
     }
 
-    pub fn with_metadata(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.metadata.0.insert(key.into(), value.into());
+    pub fn with_metadata(mut self, key: String, value: String) -> Self {
+        self.metadata.0.insert(key, value);
         self
     }
 
     pub fn try_with_change(
         mut self,
-        name: impl Into<String>,
-        description: Option<impl Into<String>>,
-        old_value: Option<impl Serialize>,
-        new_value: Option<impl Serialize>,
+        name: String,
+        description: Option<String>,
+        old_value: Option<&(impl Serialize + ?Sized)>,
+        new_value: Option<&(impl Serialize + ?Sized)>,
     ) -> Result<Self, SnapshotError> {
         self.changes.insert(
-            name.into(),
+            name,
             ResourceChange {
-                description: description.map(Into::into),
+                description,
                 old_value: old_value.map(Snapshot::new).transpose()?,
                 new_value: new_value.map(Snapshot::new).transpose()?,
             },
@@ -102,6 +157,7 @@ impl Resource {
     }
 }
 
+#[derive(Debug, Clone)]
 struct ResourceChange {
     description: Option<String>,
     old_value: Option<Snapshot>,
@@ -115,6 +171,7 @@ pub enum SnapshotError {
     Serialization(#[from] serde_json::Error),
 }
 
+#[derive(Debug, Clone)]
 struct Snapshot(Box<RawValue>);
 
 impl Snapshot {
@@ -123,7 +180,9 @@ impl Snapshot {
         Ok(Self(RawValue::from_string(json)?))
     }
 }
-struct Operation {
+
+#[derive(Debug, Clone)]
+pub struct Operation {
     kind: String,
     id: String,
     time: DateTime<Utc>,
@@ -131,34 +190,36 @@ struct Operation {
     status: Option<OperationStatus>,
 }
 
-enum OperationStatus {
+#[derive(Debug, Clone)]
+pub enum OperationStatus {
     Succeeded,
     Failed,
     Denied,
 }
 
 impl Operation {
-    fn new(
-        kind: impl Into<String>,
-        id: impl Into<String>,
+    pub fn new(
+        kind: String,
+        id: String,
         time: DateTime<Utc>,
         status: Option<OperationStatus>,
     ) -> Self {
         Self {
-            kind: kind.into(),
-            id: id.into(),
+            kind,
+            id,
             time,
             metadata: Metadata::new(),
             status,
         }
     }
 
-    pub fn with_metadata(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.metadata.0.insert(key.into(), value.into());
+    pub fn with_metadata(mut self, key: String, value: String) -> Self {
+        self.metadata.0.insert(key, value);
         self
     }
 }
 
+#[derive(Debug, Clone)]
 struct Metadata(BTreeMap<String, String>);
 
 impl Metadata {

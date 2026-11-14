@@ -28,18 +28,16 @@ impl ProjectService {
         info!(?project, "new project created");
         self.audit_service.record(
             &RecordBuilder::new()
-                .with_actor(audit::Actor::new("system".to_string(), "".to_string()))
-                .with_resource(
-                    audit::Resource::new("project".to_string(), project.id().into())
-                        .try_with_change("self".to_string(), None, None::<&()>, Some(&project))
-                        .unwrap(),
-                )
-                .with_operation(audit::Operation::new(
+                .with_actor("system".to_string(), "".to_string())
+                .with_resource("project".to_string(), project.id().into())
+                .try_with_create("self".to_string(), None, &project)
+                .unwrap()
+                .with_operation(
                     "create".to_string(),
                     "ProjectService::create".to_string(),
                     Utc::now(),
                     Some(audit::OperationStatus::Succeeded),
-                ))
+                )
                 .build(),
         );
         self.project_store.save(&project);
@@ -65,23 +63,16 @@ impl ProjectService {
         info!("project title changed");
         self.audit_service.record(
             &RecordBuilder::new()
-                .with_actor(audit::Actor::new("system".to_string(), "".to_string()))
-                .with_resource(
-                    audit::Resource::new("project".to_string(), project.id().into())
-                        .try_with_change(
-                            "title".to_string(),
-                            None,
-                            Some(&old_title),
-                            Some(&new_title),
-                        )
-                        .unwrap(),
-                )
-                .with_operation(audit::Operation::new(
+                .with_actor("system".to_string(), "".to_string())
+                .with_resource("project".to_string(), project.id().into())
+                .try_with_update("title".to_string(), None, &old_title, &new_title)
+                .unwrap()
+                .with_operation(
                     "update".to_string(),
                     "ProjectService::change_title".to_string(),
                     Utc::now(),
                     Some(audit::OperationStatus::Succeeded),
-                ))
+                )
                 .build(),
         );
         self.project_store.save(&project);

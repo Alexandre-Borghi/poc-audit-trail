@@ -107,9 +107,8 @@ impl Actor {
         }
     }
 
-    pub fn with_metadata(mut self, key: String, value: String) -> Self {
+    pub fn set_metadata(&mut self, key: String, value: String) {
         self.metadata.0.insert(key, value);
-        self
     }
 }
 
@@ -131,27 +130,26 @@ impl Resource {
         }
     }
 
-    pub fn with_metadata(mut self, key: String, value: String) -> Self {
+    pub fn set_metadata(&mut self, key: String, value: String) {
         self.metadata.0.insert(key, value);
-        self
     }
 
-    pub fn try_with_change(
-        mut self,
-        name: String,
+    pub fn try_set_change(
+        &mut self,
+        field: String,
         description: Option<String>,
         old_value: Option<&(impl Serialize + ?Sized)>,
         new_value: Option<&(impl Serialize + ?Sized)>,
-    ) -> Result<Self, SnapshotError> {
+    ) -> Result<(), SnapshotError> {
         self.changes.insert(
-            name,
+            field,
             ResourceChange {
                 description,
                 old_value: old_value.map(Snapshot::new).transpose()?,
                 new_value: new_value.map(Snapshot::new).transpose()?,
             },
         );
-        Ok(self)
+        Ok(())
     }
 }
 
@@ -211,9 +209,8 @@ impl Operation {
         }
     }
 
-    pub fn with_metadata(mut self, key: String, value: String) -> Self {
+    pub fn set_metadata(&mut self, key: String, value: String) {
         self.metadata.0.insert(key, value);
-        self
     }
 }
 

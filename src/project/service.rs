@@ -2,7 +2,7 @@ use chrono::Utc;
 use tracing::{debug, info, instrument, trace};
 
 use crate::{
-    audit::{self, AuditService, OperationKind, RecordBuilder},
+    audit::{self, AuditService, OperationKind, OperationStatus, RecordBuilder},
     project::{Project, ProjectId, ProjectStore},
 };
 
@@ -36,7 +36,7 @@ impl ProjectService {
                     OperationKind::Create,
                     "ProjectService::create".to_string(),
                     Utc::now(),
-                    Some(audit::OperationStatus::Succeeded),
+                    Some(OperationStatus::Succeeded),
                 )
                 .build(),
         );
@@ -71,7 +71,7 @@ impl ProjectService {
                     OperationKind::Update,
                     "ProjectService::change_title".to_string(),
                     Utc::now(),
-                    Some(audit::OperationStatus::Succeeded),
+                    Some(OperationStatus::Succeeded),
                 )
                 .build(),
         );
@@ -81,6 +81,19 @@ impl ProjectService {
 
     #[instrument(skip(self))]
     pub fn get(&self, id: ProjectId) -> Option<Project> {
-        self.project_store.get_by_id(id)
+        let project = self.project_store.get_by_id(id);
+        self.audit_service.record(
+            &RecordBuilder::new()
+                .with_actor("system".to_string(), "".to_string())
+                .with_resource("project".to_string(), id.into())
+                .with_operation(
+                    OperationKind::Read,
+                    "ProjectService::get".to_string(),
+                    Utc::now(),
+                    Some(OperationStatus::Succeeded),
+                )
+                .build(),
+        );
+        project
     }
 }

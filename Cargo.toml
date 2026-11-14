@@ -9,3 +9,5 @@ thiserror = "2"
 serde = "1"
 serde_json = { version = "1", features = ["raw_value"] }
 uuid = { version = "1.29.2", features = ["v4"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }

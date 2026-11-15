@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use tracing::{debug, instrument, trace};
 
@@ -6,14 +6,14 @@ use super::{AuditStore, Record};
 
 #[derive(Clone)]
 pub struct AuditService {
-    audit_store: Rc<dyn AuditStore>,
+    audit_store: Arc<dyn AuditStore>,
 }
 
 impl AuditService {
     #[instrument(skip_all)]
     pub fn new(audit_store: impl AuditStore + 'static) -> Self {
         let audit_service = Self {
-            audit_store: Rc::new(audit_store),
+            audit_store: Arc::new(audit_store),
         };
         trace!("audit service initialized");
         audit_service

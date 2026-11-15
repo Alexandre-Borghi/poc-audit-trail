@@ -11,3 +11,8 @@ serde_json = { version = "1", features = ["raw_value"] }
 uuid = { version = "1.29.2", features = ["v4", "serde"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread"] }
+axum = "0.8.9"
+tower-http = { version = "0.7.1", features = ["trace"] }
+axum-tracing-opentelemetry = "0.42.1"
+init-tracing-opentelemetry = { version = "0.44.0", features = ["otlp", "tracing_subscriber_ext"] }
